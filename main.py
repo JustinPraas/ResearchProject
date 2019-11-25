@@ -40,14 +40,14 @@ def main(iterations):
         X, y = buildTrainingSet(graphs, centralityDicts)
 
         # regressor = RandomForestRegressor()
-        print("Fitting RF using cross validation (k=10)")
+        print("Fitting RF using cross validation")
         rf_random.fit(X, y)
-
-        print(rf_random.best_params_)
 
         with open('best_params.json', 'w') as outfile:
             print("Writing to file")
             json.dump(rf_random.best_params_, outfile)
+            json.dump(rf_random.best_estimator_, outfile)
+            json.dump(rf_random.best_score_, outfile)
 
         # print(regressor.feature_importances_)
         # print(regressor.predict([[0.3, 0.4]]))
