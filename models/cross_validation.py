@@ -32,6 +32,6 @@ param_grid = {'n_estimators': n_estimators,
 regressor = RandomForestRegressor()
 rf_random = GridSearchCV(estimator=regressor,
                          param_grid=param_grid,
-                         cv=10,
+                         cv=2,
                          verbose=1,
                          n_jobs=-1)

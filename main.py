@@ -43,11 +43,11 @@ def main(iterations):
         print("Fitting RF using cross validation")
         rf_random.fit(X, y)
 
-        with open('best_params.json', 'w') as outfile:
+        with open('best_params.txt', 'w') as outfile:
             print("Writing to file")
             json.dump(rf_random.best_params_, outfile)
-            json.dump(rf_random.best_estimator_, outfile)
-            json.dump(rf_random.best_score_, outfile)
+            outfile.write("\n\nBest estimator: " + str(rf_random.best_estimator_))
+            outfile.write("\n\nBest score: " + str(rf_random.best_score_))
 
         # print(regressor.feature_importances_)
         # print(regressor.predict([[0.3, 0.4]]))
