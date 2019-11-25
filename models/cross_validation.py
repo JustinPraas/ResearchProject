@@ -14,10 +14,10 @@ max_features = ['auto', 'sqrt']
 # max_depth.append(None)
 
 # Minimum number of samples required to split a node
-min_samples_split = 0.001
+min_samples_split = [0.001, 0.01]
 
 # Minimum number of samples required at each leaf node
-min_samples_leaf = 0.001
+min_samples_leaf = [0.001, 0.01]
 
 # Method of selecting samples for training each tree
 # bootstrap = [True, False]
