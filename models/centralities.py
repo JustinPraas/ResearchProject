@@ -18,29 +18,20 @@ def getCentralityValuesDict(graphs, centralities):
         for g in graphs:
             result["closeness"][g] = closeness_centrality(g)
 
-        # print("Betweenness:", result["betweenness"])
+    if "katz" in centralities:
+        for g in graphs:
+            result["katz"][g] = katz_centrality_numpy(g, 0.1)
 
-    # if "closeness" in centralities:
-    #     result["closeness"] = [(graphs.index(g), closeness_centrality(g)) for g in graphs]
-    #     print("Closeness:", result["closeness"])
-    #
-    # if "katz" in centralities:
-    #     result["katz"] = [(graphs.index(g), katz_centrality_numpy(g, 0.1)) for g in graphs]
-    #     print("Katz:", result["katz"])
-    #
-    # if "eigenvector" in centralities:
-    #     result["eigenvector"] = [(graphs.index(g), eigenvector_centrality_numpy(g, 0.1)) for g in graphs]
-    #     print("EigenVector:", result["eigenvector"])
-    #
-    # if "pagerank" in centralities:
-    #     result["pagerank"] = [(graphs.index(g), pagerank_numpy(g)) for g in graphs]
-    #     print("PageRank:", result["pagerank"])
-    #
-    # if "degree" in centralities:
-    #     result["degree"] = [(graphs.index(g), degree_centrality(g)) for g in graphs]
-    #     print("Degree:", result["degree"])
+    if "eigenvector" in centralities:
+        for g in graphs:
+            result["eigenvector"][g] = eigenvector_centrality_numpy(g, 0.1)
+
+    if "pagerank" in centralities:
+        for g in graphs:
+            result["pagerank"][g] = pagerank_numpy(g)
+
+    if "degree" in centralities:
+        for g in graphs:
+            result["degree"][g] = degree_centrality(g)
 
     return result
-
-# def getCentralityValues(centralities):
-#
