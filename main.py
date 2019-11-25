@@ -1,3 +1,5 @@
+from sklearn.model_selection import train_test_split
+
 from models.centralities import getCentralityValuesDict
 from models.cross_validation import rf_random
 from models.graph_generator import generateLargeGraphs, generateGraphSeedPairs
@@ -39,15 +41,18 @@ def main(iterations):
         print("Building training set")
         X, y = buildTrainingSet(graphs, centralityDicts)
 
-        # regressor = RandomForestRegressor()
-        print("Fitting RF using cross validation")
-        rf_random.fit(X, y)
+        # Train test split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 
+        print("Fitting RF using k=10 cross validation")
+        rf_random.fit(X_train, y_train)
+
+        print("Scoring test set")
+        scores = rf_random.score(X_test, y_test)
+        print(scores)
+
+        print("Writing to file")
         with open('best_params.txt', 'w') as outfile:
-            print("Writing to file")
             json.dump(rf_random.best_params_, outfile)
             outfile.write("\n\nBest estimator: " + str(rf_random.best_estimator_))
             outfile.write("\n\nBest score: " + str(rf_random.best_score_))
-
-        # print(regressor.feature_importances_)
-        # print(regressor.predict([[0.3, 0.4]]))
