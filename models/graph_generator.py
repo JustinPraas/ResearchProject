@@ -7,7 +7,7 @@ def generateLargeGraphs(M, N):
     graphs = []
     # numOfEdges = randrange(1, N)
     num_of_edges = min(100, N//10)
-    print("Edges: ", num_of_edges)
+    # print("Edges: ", num_of_edges)
     for m in range(0, M):
         graphs.append(barabasi_albert_graph(N, num_of_edges))
         m += 1

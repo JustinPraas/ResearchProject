@@ -29,7 +29,7 @@ def main(iterations):
 
         # Retrieve node centralities
         centralityDicts = getCentralityValuesDict(graphs, features)
-        print(centralityDicts)
+        # print(centralityDicts)
 
         # Build training set
         X, y = buildTrainingSet(graphs, centralityDicts)

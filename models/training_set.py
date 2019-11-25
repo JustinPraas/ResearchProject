@@ -20,8 +20,6 @@ def buildTrainingSet(centrality_values, spreads):
 
     X = np.transpose(X)
 
-    print(y)
-
     return X, y
 
 def buildTrainingSet(graphs, centralities_dict):

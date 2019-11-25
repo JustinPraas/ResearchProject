@@ -30,4 +30,10 @@ random_grid = {'n_estimators': n_estimators,
                'bootstrap': bootstrap}
 
 regressor = RandomForestRegressor()
-rf_random = RandomizedSearchCV(estimator=regressor, param_distributions=random_grid, n_iter=100, cv=10, verbose=2, random_state=1, n_jobs=-1)
+rf_random = RandomizedSearchCV(estimator=regressor,
+                               param_distributions=random_grid,
+                               n_iter=100,
+                               cv=10,
+                               verbose=5,
+                               random_state=1,
+                               n_jobs=-1)
