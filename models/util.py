@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 def printCentralityDicts(c_dicts):
     for c in c_dicts:
         for graph in c_dicts[c]:
@@ -9,17 +7,9 @@ def printCentralityDicts(c_dicts):
             print("")
         print("")
 
-def scatterPlot(X, y, gtitle="", xtitle="", ytitle=""):
-    _, ydim = X.shape
 
-    for i in range(0, ydim):
-        Xs = [x[i] for x in X]
-        plt.scatter(Xs, y, alpha=0.4, label=xtitle.split(", ")[i])
-        i += 1
-
-    plt.legend()
-    plt.grid(True)
-    plt.title(gtitle)
-    plt.xlabel(xtitle)
-    plt.ylabel(ytitle)
-    plt.show()
+def secondsToMinSec(seconds):
+    sec = int(seconds)
+    mins = sec // 60
+    remSec = sec - (60 * mins)
+    return (mins, remSec)

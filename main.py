@@ -11,7 +11,7 @@ import json
 from models.training_set import buildDataSet
 
 # The sizes of graphs to be generated
-from models.util import scatterPlot
+from models.data_analysis import scatterPlot
 
 # largeNs = [50]
 #
@@ -36,6 +36,12 @@ def mainSmall(features, spread_prob, iterations, N):
     # Machine learning
     result_dict = mainCompute(graphs, features, spread_prob, iterations)
 
+    # Plot
+    result_dict['small'] = True
+    result_dict['N'] = N
+    scatterPlot(result_dict)
+
+
 def mainLarge(features, spread_prob, iterations, M, N):
 
     # Generate M graphs of size N
@@ -44,6 +50,12 @@ def mainLarge(features, spread_prob, iterations, M, N):
     # Machine learning
     result_dict = mainCompute(graphs, features, spread_prob, iterations)
 
+    # Plot
+    result_dict['small'] = False
+    result_dict['N'] = N
+    result_dict['M'] = M
+    scatterPlot(result_dict)
+
 
 def mainCompute(graphs, features, spread_prob, iterations):
 
@@ -51,7 +63,6 @@ def mainCompute(graphs, features, spread_prob, iterations):
     centralityDicts = getCentralityValuesDict(graphs, features)
 
     # Build data set
-    print("Building training sets")
     X, y = buildDataSet(graphs, centralityDicts, spread_prob, iterations)
 
     # Train-test split
@@ -72,7 +83,12 @@ def mainCompute(graphs, features, spread_prob, iterations):
     print("Test score:", score_test)
     print("Training score:", score_training)
 
-    return {'X':X, 'y':y, 'score_test': score_test, 'score_training': score_training}
+    return {'X':X,
+            'y':y,
+            'spread_prob': spread_prob,
+            'features': features,
+            'score_test': score_test,
+            'score_training': score_training}
 
 
 # def writeToFile(spread_param, N, M):

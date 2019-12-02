@@ -3,12 +3,14 @@ import time
 import numpy as np
 
 from models.information_diffusion import independentCascade, weightedCascade
+from models.util import secondsToMinSec
 
 
 def buildDataSet(graphs, centralities_dict, spread_param, iterations):
     X, y = [], []
 
-    start = time.time()
+    startTotal = time.time()
+    print("Building data set...", end=" ")
     for graph in graphs:
         for seed in graph.nodes:
             temp_centralities = []
@@ -24,9 +26,10 @@ def buildDataSet(graphs, centralities_dict, spread_param, iterations):
                 spread = weightedCascade(graph, seed, iterations)
 
             y.append(spread)
-    end = time.time()
 
     Xn, yn = np.array(X), np.array(y)
 
-    print("Duration", int(end - start), "seconds")
+    endTotal = int(time.time())
+    print("Duration: %d minutes and %d seconds" % secondsToMinSec(endTotal - startTotal))
+
     return Xn, y
