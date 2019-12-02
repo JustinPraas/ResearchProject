@@ -1,39 +1,32 @@
+import time
+
 import numpy as np
 
-from models.information_diffusion import independentCascade
+from models.information_diffusion import independentCascade, weightedCascade
 
 
-def buildTrainingSet(centrality_values, spreads):
-    X = []
-    y = []
-
-    for centrality in centrality_values:
-        temp_centrality = []
-
-        for (g, node_centralities) in centrality_values[centrality]:
-
-            for u in node_centralities:
-                temp_centrality.append(node_centralities[u])
-                y.append(spreads[(g, u)])
-
-        X.append(temp_centrality)
-
-    X = np.transpose(X)
-
-    return X, y
-
-def buildTrainingSet(graphs, centralities_dict):
+def buildDataSet(graphs, centralities_dict, spread_param, iterations):
     X, y = [], []
 
-    for g in graphs:
-        for u in g.nodes:
+    start = time.time()
+    for graph in graphs:
+        for seed in graph.nodes:
             temp_centralities = []
-            spread = independentCascade(g, u, 0.1)
 
-            for c in centralities_dict:
-                temp_centralities.append(centralities_dict[c][g][u])
+            for centr_key in centralities_dict:
+                temp_centralities.append(centralities_dict[centr_key][graph][seed])
 
             X.append(temp_centralities)
-            y.append(spread)
 
-    return X, y
+            if spread_param is not None:
+                spread = independentCascade(graph, seed, spread_param, iterations)
+            else:
+                spread = weightedCascade(graph, seed, iterations)
+
+            y.append(spread)
+    end = time.time()
+
+    Xn, yn = np.array(X), np.array(y)
+
+    print("Duration", int(end - start), "seconds")
+    return Xn, y

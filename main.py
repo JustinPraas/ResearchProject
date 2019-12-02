@@ -1,58 +1,83 @@
+import time
+
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from models.centralities import getCentralityValuesDict
-from models.cross_validation import rf_random
-from models.graph_generator import generateLargeGraphs, generateGraphSeedPairs
-from models.information_diffusion import *
+from models.cross_validation import rf_gridCV
+from models.graph_generator import generateLargeGraphs, generateSmallGraphs
 import json
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.datasets import make_regression
 
-from models.training_set import buildTrainingSet
+from models.training_set import buildDataSet
 
-largeNs = [100]
-M = 50
-features = ["betweenness", "closeness"]#, "katz", "eigenvector"]
+# The sizes of graphs to be generated
+from models.util import scatterPlot
+
+# largeNs = [50]
+#
+# # The number of graphs of size N to be generated
+# M = 50
+
+# The features taken into account when training/testing
+# features = ["closeness"]#["katz", "degree"]#, "eigenvector"]#, "degree", "pagerank"]
+#
+# # Spread parameters. Numbers for all IC params, None for WC.
+# spread_params = [0.01]#, 0.01, None]
+
+# Write to file?
+wtf = False
 
 
-def main(iterations):
-    # Create data sets
-    for n in largeNs:
-        # Generate M graphs of size n
+def mainSmall(features, spread_prob, iterations, N):
 
-        print("Generating", n, "graphs")
-        graphs = generateLargeGraphs(M, n)
-        # print(M, "large graph" + ("s" if M > 1 else "") + " of size", n, "generated")
+    # Generate small graphs of size N from graph files
+    graphs = generateSmallGraphs(N)
 
-        # Generate graph-seed pairs for easier processing of other data
-        graph_seed_pairs = generateGraphSeedPairs(graphs)
+    # Machine learning
+    result_dict = mainCompute(graphs, features, spread_prob, iterations)
 
-        # Apply spread models
-        print("Applying spread models")
-        ic_0_01_spreads = applySpread(graph_seed_pairs, independentCascade, 0.01)
-        # ic_0_1_spreads = applySpread(graph_seed_pairs, independentCascade, 0.02)
-        # wc_spreads = applySpread(graph_seed_pairs, weightedCascade)
+def mainLarge(features, spread_prob, iterations, M, N):
 
-        # Retrieve node centralities
-        centralityDicts = getCentralityValuesDict(graphs, features)
-        # print(centralityDicts)
+    # Generate M graphs of size N
+    graphs = generateLargeGraphs(M, N)
 
-        # Build training set
-        print("Building training set")
-        X, y = buildTrainingSet(graphs, centralityDicts)
+    # Machine learning
+    result_dict = mainCompute(graphs, features, spread_prob, iterations)
 
-        # Train test split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 
-        print("Fitting RF using k=10 cross validation")
-        rf_random.fit(X_train, y_train)
+def mainCompute(graphs, features, spread_prob, iterations):
 
-        print("Scoring test set")
-        scores = rf_random.score(X_test, y_test)
-        print(scores)
+    # Retrieve node centralities
+    centralityDicts = getCentralityValuesDict(graphs, features)
 
-        print("Writing to file")
-        with open('best_params.txt', 'w') as outfile:
-            json.dump(rf_random.best_params_, outfile)
-            outfile.write("\n\nBest estimator: " + str(rf_random.best_estimator_))
-            outfile.write("\n\nBest score: " + str(rf_random.best_score_))
+    # Build data set
+    print("Building training sets")
+    X, y = buildDataSet(graphs, centralityDicts, spread_prob, iterations)
+
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+
+    # Scale
+    sc = StandardScaler()
+    X_train = sc.fit_transform(X_train)
+    X_test = sc.transform(X_test)
+
+    # print("Fitting RF using k=10 cross validation")
+    rf_gridCV.fit(X_train, y_train)
+
+    # print("Scoring test set")
+    score_test = rf_gridCV.score(X_test, y_test)
+    score_training = rf_gridCV.score(X_train, y_train)
+
+    print("Test score:", score_test)
+    print("Training score:", score_training)
+
+    return {'X':X, 'y':y, 'score_test': score_test, 'score_training': score_training}
+
+
+# def writeToFile(spread_param, N, M):
+#     print("Writing to file")
+#     with open('best_params_N' + str(N) + '_M' + str(M) + '_p' + str(spread_param) + '.txt', 'w') as outfile:
+#         json.dump(rf_gridCV.best_params_, outfile)
+#         outfile.write("\n\nBest estimator: " + str(rf_gridCV.best_estimator_))
+#         outfile.write("\n\nBest score: " + str(rf_gridCV.best_score_))
