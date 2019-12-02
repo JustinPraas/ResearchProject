@@ -86,6 +86,7 @@ def mainCompute(graphs, features, spread_prob, iterations):
     return {'X':X,
             'y':y,
             'spread_prob': spread_prob,
+            'iterations': iterations,
             'features': features,
             'score_test': score_test,
             'score_training': score_training}
