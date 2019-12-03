@@ -1,4 +1,5 @@
 import time
+from typing import OrderedDict
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -11,21 +12,12 @@ import json
 from models.data_set import buildDataSet
 
 # The sizes of graphs to be generated
-from models.data_analysis import scatterPlotXDegreeSpread
-
-# largeNs = [50]
-#
-# # The number of graphs of size N to be generated
-# M = 50
-
-# The features taken into account when training/testing
-# features = ["closeness"]#["katz", "degree"]#, "eigenvector"]#, "degree", "pagerank"]
-#
-# # Spread parameters. Numbers for all IC params, None for WC.
-# spread_params = [0.01]#, 0.01, None]
+from models.data_analysis import scatterPlotXDegreeSpread, heatmap
 
 # Write to file?
 wtf = False
+
+doML = False
 
 
 def mainSmall(features, spread_prob, iterations, N):
@@ -66,22 +58,28 @@ def mainCompute(graphs, features, spread_prob, iterations):
     X, y = buildDataSet(graphs, centralityDicts, spread_prob, iterations)
 
     # Train-test split
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
-    #
-    # # Scale
-    # sc = StandardScaler()
-    # X_train = sc.fit_transform(X_train)
-    # X_test = sc.transform(X_test)
-    #
-    # # print("Fitting RF using k=10 cross validation")
-    # rf_gridCV.fit(X_train, y_train)
-    #
-    # # print("Scoring test set")
-    score_test = score_training = 0# score_test = rf_gridCV.score(X_test, y_test)
-    # score_training = rf_gridCV.score(X_train, y_train)
-    #
-    # print("Test score:", score_test)
-    # print("Training score:", score_training)
+    if doML:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+
+        # Scale
+        sc = StandardScaler()
+        X_train = sc.fit_transform(X_train)
+        X_test = sc.transform(X_test)
+
+        # print("Fitting RF using k=10 cross validation")
+        rf_gridCV.fit(X_train, y_train)
+
+        # print("Scoring test set")
+        score_test = rf_gridCV.score(X_test, y_test)
+        score_training = rf_gridCV.score(X_train, y_train)
+
+        print("Test score:", score_test)
+        print("Training score:", score_training)
+
+    # TODO: remove
+    if not doML:
+        score_test = 0
+        score_training = 0
 
     return {'X':X,
             'y':y,
@@ -93,9 +91,16 @@ def mainCompute(graphs, features, spread_prob, iterations):
             }
 
 
-# def writeToFile(spread_param, N, M):
-#     print("Writing to file")
-#     with open('best_params_N' + str(N) + '_M' + str(M) + '_p' + str(spread_param) + '.txt', 'w') as outfile:
-#         json.dump(rf_gridCV.best_params_, outfile)
-#         outfile.write("\n\nBest estimator: " + str(rf_gridCV.best_estimator_))
-#         outfile.write("\n\nBest score: " + str(rf_gridCV.best_score_))
+def generateHeatmapForSmall(features, probs, Ns, iterations):
+    result_data = []
+    for n in Ns:
+        # Generate small graphs of size N from graph files
+        graphs = generateSmallGraphs(n)
+
+        temp_data = []
+        for p in probs:
+            temp_data.append(mainCompute(graphs, features, p, iterations)['score_test'])
+
+        result_data.append(temp_data)
+
+    heatmap(result_data, "_".join(features), probs, Ns)
