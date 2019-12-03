@@ -8,10 +8,10 @@ from models.cross_validation import rf_gridCV
 from models.graph_generator import generateLargeGraphs, generateSmallGraphs
 import json
 
-from models.training_set import buildDataSet
+from models.data_set import buildDataSet
 
 # The sizes of graphs to be generated
-from models.data_analysis import scatterPlot
+from models.data_analysis import scatterPlotXDegreeSpread
 
 # largeNs = [50]
 #
@@ -39,7 +39,7 @@ def mainSmall(features, spread_prob, iterations, N):
     # Plot
     result_dict['small'] = True
     result_dict['N'] = N
-    scatterPlot(result_dict)
+    scatterPlotXDegreeSpread(result_dict)
 
 
 def mainLarge(features, spread_prob, iterations, M, N):
@@ -54,7 +54,7 @@ def mainLarge(features, spread_prob, iterations, M, N):
     result_dict['small'] = False
     result_dict['N'] = N
     result_dict['M'] = M
-    scatterPlot(result_dict)
+    scatterPlotXDegreeSpread(result_dict)
 
 
 def mainCompute(graphs, features, spread_prob, iterations):
@@ -66,22 +66,22 @@ def mainCompute(graphs, features, spread_prob, iterations):
     X, y = buildDataSet(graphs, centralityDicts, spread_prob, iterations)
 
     # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
-
-    # Scale
-    sc = StandardScaler()
-    X_train = sc.fit_transform(X_train)
-    X_test = sc.transform(X_test)
-
-    # print("Fitting RF using k=10 cross validation")
-    rf_gridCV.fit(X_train, y_train)
-
-    # print("Scoring test set")
-    score_test = rf_gridCV.score(X_test, y_test)
-    score_training = rf_gridCV.score(X_train, y_train)
-
-    print("Test score:", score_test)
-    print("Training score:", score_training)
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+    #
+    # # Scale
+    # sc = StandardScaler()
+    # X_train = sc.fit_transform(X_train)
+    # X_test = sc.transform(X_test)
+    #
+    # # print("Fitting RF using k=10 cross validation")
+    # rf_gridCV.fit(X_train, y_train)
+    #
+    # # print("Scoring test set")
+    score_test = score_training = 0# score_test = rf_gridCV.score(X_test, y_test)
+    # score_training = rf_gridCV.score(X_train, y_train)
+    #
+    # print("Test score:", score_test)
+    # print("Training score:", score_training)
 
     return {'X':X,
             'y':y,
@@ -89,7 +89,8 @@ def mainCompute(graphs, features, spread_prob, iterations):
             'iterations': iterations,
             'features': features,
             'score_test': score_test,
-            'score_training': score_training}
+            'score_training': score_training
+            }
 
 
 # def writeToFile(spread_param, N, M):
