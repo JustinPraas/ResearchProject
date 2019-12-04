@@ -2,7 +2,8 @@ import time
 
 import numpy as np
 
-from models.information_diffusion import independentCascade, weightedCascade
+import main
+from models.information_diffusion import independentCascade, weightedCascade, independentCascadePar
 from models.util import secondsToMinSec
 
 
@@ -11,6 +12,7 @@ def buildDataSet(graphs, centralities_dict, spread_param, iterations):
 
     startTotal = time.time()
     print("Building data set...", end=" ")
+
     for graph in graphs:
         for seed in graph.nodes:
             temp_centralities = []
@@ -21,7 +23,10 @@ def buildDataSet(graphs, centralities_dict, spread_param, iterations):
             X.append(temp_centralities)
 
             if spread_param is not None:
-                spread = independentCascade(graph, seed, spread_param, iterations)
+                if main.concurrent:
+                    spread = independentCascadePar(graph, seed, spread_param, iterations)
+                else:
+                    spread = independentCascade(graph, seed, spread_param, iterations)
             else:
                 spread = weightedCascade(graph, seed, iterations)
 

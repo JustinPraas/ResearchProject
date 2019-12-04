@@ -1,6 +1,3 @@
-import time
-from typing import OrderedDict
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -9,15 +6,19 @@ from models.cross_validation import rf_gridCV
 from models.graph_generator import generateLargeGraphs, generateSmallGraphs
 import json
 
-from models.data_set import buildDataSet
+import models.data_set
 
 # The sizes of graphs to be generated
 from models.data_analysis import scatterPlotXDegreeSpread, heatmap
 
 # Write to file?
+from models.learning_curve import do_plot_LC
+
 wtf = False
 
 doML = False
+
+concurrent = False
 
 
 def mainSmall(features, spread_prob, iterations, N):
@@ -55,7 +56,7 @@ def mainCompute(graphs, features, spread_prob, iterations):
     centralityDicts = getCentralityValuesDict(graphs, features)
 
     # Build data set
-    X, y = buildDataSet(graphs, centralityDicts, spread_prob, iterations)
+    X, y = models.data_set.buildDataSet(graphs, centralityDicts, spread_prob, iterations)
 
     # Train-test split
     if doML:

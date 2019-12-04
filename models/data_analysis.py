@@ -37,8 +37,8 @@ def scatterPlotXDegreeSpread(result_dict):
     plt.title(title)
 
     if savePlot:
-        plt.savefig("./plots/scatter_N%d_p%s.png" %
-                    (N, str(int(spread_prob*100)) if spread_prob else "WC"),
+        plt.savefig("./plots/scatter_N%d_p%s_it%d.png" %
+                    (N, str(int(spread_prob*100)) if spread_prob else "WC", iterations),
                     bbox_inches='tight')
 
     plt.show()
