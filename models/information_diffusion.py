@@ -1,5 +1,6 @@
-from concurrent.futures.thread import ThreadPoolExecutor
 from random import random
+
+from joblib import Parallel, delayed
 
 
 def independentCascade(graph, seedNode, probability, iterations):
@@ -23,13 +24,7 @@ def independentCascade(graph, seedNode, probability, iterations):
 
 
 def independentCascadePar(graph, seedNode, probability, iterations):
-    results = []
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        for i in range(iterations):
-            future = executor.submit(independentCascadeWorker, graph, probability, seedNode)
-            results.append(future.result())
-
-    print("Length", len(results))
+    results = Parallel(n_jobs=-1, verbose=0)(delayed(independentCascadeWorker)(graph, probability, seedNode) for i in range(0, iterations))
     average = sum(results) / len(results)
     return average
 

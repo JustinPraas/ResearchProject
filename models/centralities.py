@@ -1,10 +1,11 @@
 import time
 from collections import OrderedDict
 
+from joblib import cpu_count, Parallel, delayed
 from networkx import betweenness_centrality, closeness_centrality, degree_centrality, katz_centrality_numpy, \
     pagerank_numpy, eigenvector_centrality_numpy
 
-from models.util import secondsToMinSec
+from models.util import secondsToMinSec, batches
 
 
 def getCentralityValuesDict(graphs, centralities):
@@ -28,6 +29,68 @@ def getCentralityValuesDict(graphs, centralities):
             result["closeness"][g] = closeness_centrality(g)
         end = int(time.time())
         # print("Closeness:", end - start, "seconds")
+
+    if "katz" in centralities:
+        start = time.time()
+        for g in graphs:
+            result["katz"][g] = katz_centrality_numpy(g)
+        end = int(time.time())
+        # print("Katz:", end - start, "seconds")
+
+    if "eigenvector" in centralities:
+        start = time.time()
+        for g in graphs:
+            result["eigenvector"][g] = eigenvector_centrality_numpy(g)
+        end = int(time.time())
+        # print("Eigenvector:", end - start, "seconds")
+
+    if "pagerank" in centralities:
+        start = time.time()
+        for g in graphs:
+            result["pagerank"][g] = pagerank_numpy(g)
+        end = int(time.time())
+        # print("PageRank:", end - start, "seconds")
+
+    if "degree" in centralities:
+        start = time.time()
+        for g in graphs:
+            result["degree"][g] = degree_centrality(g) # is normalized
+        end = int(time.time())
+        # print("Degree:", end - start, "seconds")
+
+    endTotal = int(time.time())
+    print("Duration: %d minutes and %d seconds" % secondsToMinSec(endTotal - startTotal))
+
+    return result
+
+
+def getCentralityValuesDictPar(graphs, centralities):
+    startTotal = time.time()
+    print("Building centrality dictionaries...", end=" ")
+    result = OrderedDict()
+
+    processors = cpu_count()
+    bs = batches(graphs, int(len(graphs)/processors))
+
+    for c in centralities:
+        result[c] = OrderedDict()
+
+    if "betweenness" in centralities:
+        start = time.time()
+        for g in graphs:
+            result["betweenness"][g] = betweenness_centrality(g, k=len(g.nodes)) # k <= N, higher k gives better approximation
+        end = int(time.time())
+        # print("Betweenness:", end - start, "seconds")
+
+    if "closeness" in centralities:
+        start = time.time()
+
+        par_results = Parallel(n_jobs=-1, verbose=1)(delayed(closenessWorker)(batch) for batch in bs)
+        for res in par_results:
+            result["closeness"].update(res)
+
+        end = int(time.time())
+        print("Closeness:", end - start, "seconds")
 
     if "katz" in centralities:
         start = time.time()
@@ -61,3 +124,10 @@ def getCentralityValuesDict(graphs, centralities):
     print("Duration: %d minutes and %d seconds" % secondsToMinSec(endTotal - startTotal))
 
     return result
+
+
+def closenessWorker(graphs):
+    par_res = OrderedDict()
+    for g in graphs:
+        par_res[g] = closeness_centrality(g)
+    return par_res

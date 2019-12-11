@@ -1,47 +1,49 @@
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score
 
 from models.centralities import getCentralityValuesDict
-from models.cross_validation import rf_gridCV
-from models.graph_generator import generateLargeGraphs, generateSmallGraphs
-import json
+from models.cross_validation import rf_gridCV, knn_gridCV
+from models.graph_generator import generateLargeGraphs, generateSmallGraphs, generateEgoFB
 
 import models.data_set
 
 # The sizes of graphs to be generated
-from models.data_analysis import scatterPlotXDegreeSpread, heatmap
-
-# Write to file?
-from models.learning_curve import do_plot_LC
+from models.data_analysis import scatterPlotXDegreeSpread, heatmap, heatmaps, plotLearningCurve, \
+    mean_confidence_interval
 
 wtf = False
 
-doML = False
+doML = True
 
-concurrent = False
+concurrent = True
 
 
-def mainSmall(features, spread_prob, iterations, N):
+def mainSmall(features, spread_prob, iterations, N, do_knn = False, k = 5):
 
     # Generate small graphs of size N from graph files
     graphs = generateSmallGraphs(N)
 
     # Machine learning
-    result_dict = mainCompute(graphs, features, spread_prob, iterations)
+    result_dict = mainCompute(graphs, features, None, spread_prob, iterations, do_knn, k)
 
     # Plot
     result_dict['small'] = True
     result_dict['N'] = N
+    result_dict['conf_interval'] = mean_confidence_interval(result_dict['y'])
     scatterPlotXDegreeSpread(result_dict)
 
+    print(result_dict['conf_interval'])
+    return result_dict
 
-def mainLarge(features, spread_prob, iterations, M, N):
+
+def mainLarge(features, spread_prob, iterations, M, N, do_knn = False, k = 5):
 
     # Generate M graphs of size N
     graphs = generateLargeGraphs(M, N)
 
     # Machine learning
-    result_dict = mainCompute(graphs, features, spread_prob, iterations)
+    result_dict = mainCompute(graphs, features, None, spread_prob, iterations, do_knn, k)
 
     # Plot
     result_dict['small'] = False
@@ -49,14 +51,27 @@ def mainLarge(features, spread_prob, iterations, M, N):
     result_dict['M'] = M
     scatterPlotXDegreeSpread(result_dict)
 
+    return result_dict
 
-def mainCompute(graphs, features, spread_prob, iterations):
 
-    # Retrieve node centralities
-    centralityDicts = getCentralityValuesDict(graphs, features)
+def mainCompute(graphs, features, centralityDicts, spread_prob, iterations, do_knn = False, k = 5):
+    result_dict = {
+            'spread_prob': spread_prob,
+            'iterations': iterations,
+            'features': features
+    }
+
+    if centralityDicts is None:
+        centralityDicts = getCentralityValuesDict(graphs, features)
 
     # Build data set
-    X, y = models.data_set.buildDataSet(graphs, centralityDicts, spread_prob, iterations)
+    if concurrent:
+        X, y = models.data_set.buildDataSetPar(graphs, centralityDicts, spread_prob, iterations)
+    else:
+        X, y = models.data_set.buildDataSet(graphs, centralityDicts, spread_prob, iterations)
+
+    result_dict['X'] = X
+    result_dict['y'] = y
 
     # Train-test split
     if doML:
@@ -67,41 +82,63 @@ def mainCompute(graphs, features, spread_prob, iterations):
         X_train = sc.fit_transform(X_train)
         X_test = sc.transform(X_test)
 
-        # print("Fitting RF using k=10 cross validation")
-        rf_gridCV.fit(X_train, y_train)
+        if not do_knn:
+            # print("Fitting RF using k=10 cross validation")
+            rf_gridCV.fit(X_train, y_train)
 
-        # print("Scoring test set")
-        score_test = rf_gridCV.score(X_test, y_test)
-        score_training = rf_gridCV.score(X_train, y_train)
+            # print("Scoring test set")
+            result_dict['RFR_R2_test'] = rf_gridCV.score(X_test, y_test)
+            result_dict['RFR_R2_train'] = rf_gridCV.score(X_train, y_train)
+        else:
+            knn_gridCV.fit(X_train, y_train)
 
-        print("Test score:", score_test)
-        print("Training score:", score_training)
+            y_pred = knn_gridCV.predict(X_test)
+            result_dict['KNN_R2_test'] = r2_score(y_test, y_pred)
 
-    # TODO: remove
-    if not doML:
-        score_test = 0
-        score_training = 0
-
-    return {'X':X,
-            'y':y,
-            'spread_prob': spread_prob,
-            'iterations': iterations,
-            'features': features,
-            'score_test': score_test,
-            'score_training': score_training
-            }
+    return result_dict
 
 
-def generateHeatmapForSmall(features, probs, Ns, iterations):
-    result_data = []
+def generateHeatmaps(features, feature_combs, probs, iterations, Ns, M = -1, do_knn = False, k = 5):
+    result_data = {}
+    meta_data = {
+        'probs': probs,
+        'Ns': Ns,
+        'M': M,
+        'do_knn': do_knn,
+        'k': k,
+    }
+
+    for comb in feature_combs:
+        result_data[comb] = []
+
+    task_nr = 1
+    no_tasks = len(Ns) * len(feature_combs) * len(probs)
     for n in Ns:
-        # Generate small graphs of size N from graph files
-        graphs = generateSmallGraphs(n)
+        if M == -1:
+            # Generate small graphs of size N from graph files
+            graphs = generateSmallGraphs(n)
+        else:
+            graphs = generateLargeGraphs(M, n)
 
-        temp_data = []
-        for p in probs:
-            temp_data.append(mainCompute(graphs, features, p, iterations)['score_test'])
+        centralitiy_dicts = getCentralityValuesDict(graphs, features)
 
-        result_data.append(temp_data)
+        for comb in feature_combs:
+            temp_data = []
+            for p in probs:
+                print("Task %d/%d (N=%d, p=%s, comb=%s)" % (task_nr, no_tasks, n, str(p), str(comb)))
+                if do_knn:
+                    temp_data.append(mainCompute(graphs, features, centralitiy_dicts, p, iterations, do_knn, k)['KNN_R2_test'])
+                else:
+                    temp_data.append(mainCompute(graphs, features, centralitiy_dicts, p, iterations)['RFR_R2_test'])
+                task_nr += 1
 
-    heatmap(result_data, "_".join(features), probs, Ns)
+            result_data[comb].append(temp_data)
+
+    heatmaps(result_data, meta_data)
+
+
+def plotLC(features, M, N, spread_prob, iterations, sizes):
+    data = mainLarge(features, spread_prob, iterations, M, N)
+    plotLearningCurve(data['X'], data['y'], 10,  sizes)
+
+#generateHeatmapsForSmall(["closeness", "pagerank", "degree"], [("closeness", "degree"), ("pagerank", "degree"), ("closeness"), ("pagerank")], [0.01, 0.02, 0.05], 1000, [6, 7, 8])

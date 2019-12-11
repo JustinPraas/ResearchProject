@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as ps
+
 def printCentralityDicts(c_dicts):
     for c in c_dicts:
         for graph in c_dicts[c]:
@@ -13,6 +16,17 @@ def secondsToMinSec(seconds):
     mins = sec // 60
     remSec = sec - (60 * mins)
     return (mins, remSec)
+
+
+def batches(l, n):
+    n = max(1, n)
+    return [l[i:i+n] for i in range(0, len(l), n)]
+
+
+def prepareData(X, features, y):
+    zipped = [np.append(a, b) for (a, b) in np.array(list(zip(X.tolist(), y)))]
+    data = ps.DataFrame(zipped, columns=np.append(features, "spread"))
+    return data
 
 
 # def writeToFile(spread_param, N, M):

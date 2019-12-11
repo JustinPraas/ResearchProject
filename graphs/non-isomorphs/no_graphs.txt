@@ -1,0 +1,5 @@
+6:       112
+7:       853 (8*)
+8:     11117 (13*) (PC LIMIT) (1.5 GB RAM)
+9:    261080 (24*) (REQUIRES at least 24 * 1.5 GB =   36 GB RAM)
+10: 11716571 (44*) (REQUIRES at least 44 * 36     = 1584 GB RAM)
