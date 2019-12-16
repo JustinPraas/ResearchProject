@@ -1,4 +1,5 @@
-#SBATCH --partition=caserta
-#SBATCH -N32
-#SBATCH -C100
-srun -N1 -n1 -c65 cross_validation.sh
+#SBATCH -p m610
+#SBATCH -N1
+#SBATCH -C64
+./main.sh
+
