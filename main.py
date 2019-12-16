@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
@@ -98,47 +100,43 @@ def mainCompute(graphs, features, centralityDicts, spread_prob, iterations, do_k
     return result_dict
 
 
-def generateHeatmaps(features, feature_combs, probs, iterations, Ns, M = -1, do_knn = False, k = 5):
+def generateHeatmaps(features, feature_combs, probs, iterations, Ns, Ms = None, do_knn = False, k = 5):
     result_data = {}
-    meta_data = {
-        'probs': probs,
-        'Ns': Ns,
-        'M': M,
-        'do_knn': do_knn,
-        'k': k,
-    }
 
     for comb in feature_combs:
         result_data[comb] = []
 
+    graphs = OrderedDict()
+    centralities = OrderedDict()
+
+    for n in Ns:
+        if Ms is None:
+            graphs[n] = generateSmallGraphs(n)
+        else:
+            n_index = Ns.index(n)
+            graphs[n] = generateLargeGraphs(Ms[n_index], n)
+        centralities[n] = getCentralityValuesDict(graphs, features)
+
     task_nr = 1
     no_tasks = len(Ns) * len(feature_combs) * len(probs)
-    for n in Ns:
-        if M == -1:
-            # Generate small graphs of size N from graph files
-            graphs = generateSmallGraphs(n)
-        else:
-            graphs = generateLargeGraphs(M, n)
-
-        centralitiy_dicts = getCentralityValuesDict(graphs, features)
-
-        for comb in feature_combs:
-            temp_data = []
+    for comb in feature_combs:
+        for n in Ns:
+            data = []
             for p in probs:
                 print("Task %d/%d (N=%d, p=%s, comb=%s)" % (task_nr, no_tasks, n, str(p), str(comb)))
                 if do_knn:
-                    temp_data.append(mainCompute(graphs, features, centralitiy_dicts, p, iterations, do_knn, k)['KNN_R2_test'])
+                    data.append(mainCompute(graphs, features, centralities[n], p, iterations, do_knn, k)['KNN_R2_test'])
                 else:
-                    temp_data.append(mainCompute(graphs, features, centralitiy_dicts, p, iterations)['RFR_R2_test'])
+                    data.append(mainCompute(graphs, features, centralities[n], p, iterations)['RFR_R2_test'])
                 task_nr += 1
 
-            result_data[comb].append(temp_data)
+        title = "RFF: " if do_knn == False else "KNN: "
+        title += "%s, spread reps: %d" % (str(comb), iterations)
+        heatmap(data, title, probs, Ns)
 
-    heatmaps(result_data, meta_data)
 
-
-def plotLC(features, M, N, spread_prob, iterations, sizes):
+def plotLC(features, M, N, spread_prob, iterations, steps):
     data = mainLarge(features, spread_prob, iterations, M, N)
-    plotLearningCurve(data['X'], data['y'], 10,  sizes)
+    plotLearningCurve(data, 10, steps)
 
 #generateHeatmapsForSmall(["closeness", "pagerank", "degree"], [("closeness", "degree"), ("pagerank", "degree"), ("closeness"), ("pagerank")], [0.01, 0.02, 0.05], 1000, [6, 7, 8])

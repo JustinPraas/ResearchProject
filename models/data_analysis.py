@@ -16,22 +16,31 @@ sns.set()
 
 
 # IMPORTANT! INSPIRATION FROM: https://chrisalbon.com/machine_learning/model_evaluation/plot_the_learning_curve/
-def plotLearningCurve(X, y, cv, no_sizes):
+def plotLearningCurve(result_dict, cv, steps):
+    X, y = cp.copy(result_dict['X']), result_dict['y']
+    N, features, spread_prob, iterations = \
+        result_dict['N'], result_dict['features'], result_dict['spread_prob'], result_dict['iterations']
+
     train_sizes, train_scores, test_scores = learning_curve(RandomForestRegressor(n_estimators=100),
                                                             X,
                                                             y,
                                                             cv=cv,
                                                             scoring='r2',
                                                             n_jobs=-1,
-                                                            train_sizes=np.linspace(0.01, 1.0, no_sizes))
+                                                            train_sizes=np.linspace(0.01, 1.0, steps))
 
-    train_mean = np.mean(train_scores, axis=1)
-    train_std = np.std(train_scores, axis=1)
+    data = {'train_sizes': train_sizes,
+            'train_scores': train_scores,
+            'test_scores': test_scores}
 
-    test_mean = np.mean(test_scores, axis=1)
-    test_std = np.std(test_scores, axis=1)
+    train_mean = data['train_mean'] = np.mean(train_scores, axis=1)
+    train_std = data['train_std'] = np.std(train_scores, axis=1)
+
+    test_mean = data['test_mean'] = np.mean(test_scores, axis=1)
+    test_std = data['test_std'] = np.std(test_scores, axis=1)
 
     plt.figure(figsize=(4, 3))
+    plt.ylim(0.5, 1)
     plt.plot(train_sizes, train_mean, '--', color="#f67f4b",  label="Training score")
     plt.plot(train_sizes, test_mean, color="#36459c", label="Cross-validation score")
 
@@ -42,6 +51,9 @@ def plotLearningCurve(X, y, cv, no_sizes):
     plt.xlabel("Training Set Size"), plt.ylabel("R²"), plt.legend(loc="best")
 
     plt.tight_layout()
+
+    saveScatterOrLC(N, data, iterations, spread_prob, True)
+
     plt.show()
 
 
@@ -63,23 +75,36 @@ def scatterPlotXDegreeSpread(result_dict):
     ax.get_legend().remove()
     ax.figure.colorbar(cb).set_label("Degree")
 
+    saveScatterOrLC(N, data, iterations, spread_prob, False)
+
+    plt.show()
+
+
+def saveScatterOrLC(N, data, iterations, spread_prob, LC):
     if spread_prob:
         title = "IC, p = %.2f" % spread_prob
     else:
         title = "WC"
     title += ", iter: %d" % iterations
     title = "N = %d, %s" % (N, title)
-
     plt.title(title)
-
     if savePlot:
-        name = "./plots/scatter_N%d_p%s_it%d" % (N, str(int(spread_prob*100)) if spread_prob else "WC", iterations)
+        name = "./plots/scatter/%s" % ("scatter" if not LC else "LC")
+        name += "_N%d_p%s_it%d" % (
+        N, str(int(spread_prob * 100)) if spread_prob else "WC", iterations)
         plt.savefig(name + ".png", bbox_inches='tight')
         with open(name + '.txt', 'w') as outfile:
             outfile.write(title + ":\n")
-            outfile.write(data.to_string())
-
-    plt.show()
+            if not LC:
+                outfile.write(data.to_string())
+            else:
+                outfile.write("Train sizes: " + str(data['train_sizes']))
+                outfile.write("Train scores: " + str(data['train_scores']))
+                outfile.write("Test scores: " + str(data['test_scores']))
+                outfile.write("Train mean: " + str(data['train_mean']))
+                outfile.write("Train std: " + str(data['train_std']))
+                outfile.write("Test mean: " + str(data['test_mean']))
+                outfile.write("Test std: " + str(data['test_std']))
 
 
 def heatmaps(data, metadata):
@@ -117,7 +142,7 @@ def heatmap(data, title, xaxis_labels, yaxis_labels):
     plt.title(title)
 
     if savePlot:
-        name = "./plots/heatmap_%s_%s_%s" % (title, "_".join(map(str, yaxis_labels)), "_".join(map(str, xaxis_labels)))
+        name = "./plots/heatmap/%s_%s_%s" % (title, "_".join(map(str, yaxis_labels)), "_".join(map(str, xaxis_labels)))
         plt.savefig(name + ".png", bbox_inches='tight')
         with open(name + '.txt', 'w') as outfile:
             outfile.write(title + ":\n")
