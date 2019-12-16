@@ -1,3 +1,5 @@
+from textwrap import wrap
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as ps
@@ -118,7 +120,7 @@ def heatmaps(data, metadata):
                 metadata['Ns'])
 
 
-def heatmap(data, title, xaxis_labels, yaxis_labels):
+def heatmap(data, xaxis_labels, yaxis_labels, do_knn, comb, iterations):
     df = ps.DataFrame(data)
 
     xaxis_labels = [x if x is not None else "WC" for x in xaxis_labels]
@@ -139,10 +141,15 @@ def heatmap(data, title, xaxis_labels, yaxis_labels):
     ax.set_ylim(bottom + 0.5, top - 0.5)
 
     plt.tight_layout()
-    plt.title(title)
+
+    title = "RFF: " if do_knn == False else "KNN: "
+    combs = "_".join(comb)
+    title += "%s, spread reps: %d" % (str(combs), iterations)
+    plt.title("\n".join(wrap(title, 30)))
 
     if savePlot:
-        name = "./plots/heatmap/%s_%s_%s" % (title, "_".join(map(str, yaxis_labels)), "_".join(map(str, xaxis_labels)))
+        name = "./plots/heatmap/%s" % "RFF" if not do_knn else "KNN"
+        name += "_%s_%s_%s" % (combs, "_".join(map(str, yaxis_labels)), "_".join(map(str, xaxis_labels)))
         plt.savefig(name + ".png", bbox_inches='tight')
         with open(name + '.txt', 'w') as outfile:
             outfile.write(title + ":\n")

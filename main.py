@@ -115,24 +115,24 @@ def generateHeatmaps(features, feature_combs, probs, iterations, Ns, Ms = None, 
         else:
             n_index = Ns.index(n)
             graphs[n] = generateLargeGraphs(Ms[n_index], n)
-        centralities[n] = getCentralityValuesDict(graphs, features)
+        centralities[n] = getCentralityValuesDict(graphs[n], features)
 
     task_nr = 1
     no_tasks = len(Ns) * len(feature_combs) * len(probs)
     for comb in feature_combs:
+        data = []
         for n in Ns:
-            data = []
+            temp_data = []
             for p in probs:
                 print("Task %d/%d (N=%d, p=%s, comb=%s)" % (task_nr, no_tasks, n, str(p), str(comb)))
                 if do_knn:
-                    data.append(mainCompute(graphs, features, centralities[n], p, iterations, do_knn, k)['KNN_R2_test'])
+                    temp_data.append(mainCompute(graphs[n], features, centralities[n], p, iterations, do_knn, k)['KNN_R2_test'])
                 else:
-                    data.append(mainCompute(graphs, features, centralities[n], p, iterations)['RFR_R2_test'])
+                    temp_data.append(mainCompute(graphs[n], features, centralities[n], p, iterations)['RFR_R2_test'])
                 task_nr += 1
+            data.append(temp_data)
 
-        title = "RFF: " if do_knn == False else "KNN: "
-        title += "%s, spread reps: %d" % (str(comb), iterations)
-        heatmap(data, title, probs, Ns)
+        heatmap(data, probs, Ns, do_knn, comb, iterations)
 
 
 def plotLC(features, M, N, spread_prob, iterations, steps):
