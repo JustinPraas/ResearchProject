@@ -32,6 +32,8 @@ def mainSmall(features, spread_prob, iterations, N, do_knn = False, k = 5):
     # Plot
     result_dict['small'] = True
     result_dict['N'] = N
+    result_dict['do_knn'] = do_knn
+    result_dict['k'] = k
     result_dict['conf_interval'] = mean_confidence_interval(result_dict['y'])
     scatterPlotXDegreeSpread(result_dict)
 
@@ -51,6 +53,8 @@ def mainLarge(features, spread_prob, iterations, M, N, do_knn = False, k = 5):
     result_dict['small'] = False
     result_dict['N'] = N
     result_dict['M'] = M
+    result_dict['do_knn'] = do_knn
+    result_dict['k'] = k
     scatterPlotXDegreeSpread(result_dict)
 
     return result_dict
@@ -139,4 +143,3 @@ def plotLC(features, M, N, spread_prob, iterations, steps):
     data = mainLarge(features, spread_prob, iterations, M, N)
     plotLearningCurve(data, 10, steps)
 
-#generateHeatmapsForSmall(["closeness", "pagerank", "degree"], [("closeness", "degree"), ("pagerank", "degree"), ("closeness"), ("pagerank")], [0.01, 0.02, 0.05], 1000, [6, 7, 8])

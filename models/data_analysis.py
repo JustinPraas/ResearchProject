@@ -54,13 +54,14 @@ def plotLearningCurve(result_dict, cv, steps):
 
     plt.tight_layout()
 
-    saveScatterOrLC(N, data, iterations, spread_prob, True)
+    saveScatterOrLC(N, data, iterations, spread_prob, True, False)
 
     plt.show()
 
 
 def scatterPlotXDegreeSpread(result_dict):
     X, y = cp.copy(result_dict['X']), result_dict['y']
+    do_knn, k = result_dict['do_knn'], result_dict['k']
     N, features, spread_prob, iterations = \
         result_dict['N'], result_dict['features'], result_dict['spread_prob'], result_dict['iterations']
 
@@ -77,18 +78,21 @@ def scatterPlotXDegreeSpread(result_dict):
     ax.get_legend().remove()
     ax.figure.colorbar(cb).set_label("Degree")
 
-    saveScatterOrLC(N, data, iterations, spread_prob, False)
+    saveScatterOrLC(N, data, iterations, spread_prob, False, do_knn)
 
     plt.show()
 
 
-def saveScatterOrLC(N, data, iterations, spread_prob, LC):
+def saveScatterOrLC(N, data, iterations, spread_prob, LC, do_knn):
+    title = "RFF: " if not do_knn else "KNN: "
+
     if spread_prob:
-        title = "IC, p = %.2f" % spread_prob
+        title += "IC, p = %.2f" % spread_prob
     else:
-        title = "WC"
+        title += "WC"
+
+    title += ", N = %d" % (N)
     title += ", iter: %d" % iterations
-    title = "N = %d, %s" % (N, title)
     plt.title(title)
     if savePlot:
         name = "./plots/scatter/%s" % ("scatter" if not LC else "LC")
