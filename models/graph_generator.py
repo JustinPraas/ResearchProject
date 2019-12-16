@@ -24,7 +24,7 @@ def generateSmallGraphs(N):
     startTotal = time.time()
     print("Importing graphs of size %d..." % N, end=" ")
 
-    if not (5 < N < 11):
+    if not (5 < N < 10):
         raise Exception('The size for small graphs should be between 6 and 10')
         exit(0)
 

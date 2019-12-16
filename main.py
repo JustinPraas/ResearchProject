@@ -20,6 +20,10 @@ doML = True
 
 concurrent = True
 
+centralities = ["degree", "betweenness", "closeness", "pagerank", "eigenvector", "katz"]
+
+single_combs = [("degree"), ("betweenness"), ("closeness"), ("pagerank"), ("eigenvector"), ("katz")]
+
 
 def mainSmall(features, spread_prob, iterations, N, do_knn = False, k = 5):
 
@@ -142,4 +146,5 @@ def generateHeatmaps(features, feature_combs, probs, iterations, Ns, Ms = None, 
 def plotLC(features, M, N, spread_prob, iterations, steps):
     data = mainLarge(features, spread_prob, iterations, M, N)
     plotLearningCurve(data, 10, steps)
+
 
