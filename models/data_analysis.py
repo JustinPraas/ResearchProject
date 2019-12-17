@@ -18,10 +18,9 @@ sns.set()
 
 
 # IMPORTANT! INSPIRATION FROM: https://chrisalbon.com/machine_learning/model_evaluation/plot_the_learning_curve/
-def plotLearningCurve(result_dict, cv, steps):
-    X, y = cp.copy(result_dict['X']), result_dict['y']
-    N, features, spread_prob, iterations = \
-        result_dict['N'], result_dict['features'], result_dict['spread_prob'], result_dict['iterations']
+def makeLearningCurve(data_frame, features, cv, steps):
+    X = data_frame[features]
+    y = data_frame["spread"]
 
     train_sizes, train_scores, test_scores = learning_curve(RandomForestRegressor(n_estimators=100),
                                                             X,
@@ -29,7 +28,8 @@ def plotLearningCurve(result_dict, cv, steps):
                                                             cv=cv,
                                                             scoring='r2',
                                                             n_jobs=-1,
-                                                            train_sizes=np.linspace(0.01, 1.0, steps))
+                                                            train_sizes=np.linspace(0.01, 1.0, steps),
+                                                            verbose=1)
 
     data = {'train_sizes': train_sizes,
             'train_scores': train_scores,
@@ -49,14 +49,26 @@ def plotLearningCurve(result_dict, cv, steps):
     plt.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, color="#feefa6")
     plt.fill_between(train_sizes, test_mean - test_std, test_mean + test_std, color="#9dcee3")
 
-    plt.title("Learning Curve")
-    plt.xlabel("Training Set Size"), plt.ylabel("R²"), plt.legend(loc="best")
+    plt.xlabel("Training set size"), plt.ylabel("R²"), plt.legend(loc="best")
 
-    plt.tight_layout()
+    return plt, data
 
-    saveScatterOrLC(N, data, iterations, spread_prob, True, False)
 
-    plt.show()
+def makeScatterPlot(data_frame, features):
+    if len(features) > 2:
+        raise Exception("Scatter can't have more than two features")
+
+    f, ax = plt.subplots(figsize=(4, 3))
+    sns.despine(f, left=True, bottom=True)
+    palette = "RdYlBu"
+
+    cb = plt.cm.ScalarMappable(cmap=palette)
+    sns.scatterplot(x=features[0], hue=features[1], y="spread", data=data_frame, ax=ax, marker="_", palette=palette)
+
+    ax.get_legend().remove()
+    ax.figure.colorbar(cb).set_label(features[1])
+
+    return plt
 
 
 def scatterPlotXDegreeSpread(result_dict):
