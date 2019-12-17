@@ -4,7 +4,7 @@
 #SBATCH -n 6
 #SBATCH -c 16
 #SBATCH --mail-type=END,FAIL       # email status changes
-#SBATCH --mail-user
+#SBATCH --mail-user -u
 
 module load anaconda3
 
