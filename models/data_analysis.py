@@ -130,20 +130,20 @@ def heatmaps(data, metadata):
         title = "RFR: " if metadata['do_knn'] == False else "KNN: "
         title += "_".join([x for x in comb])
 
-        heatmap(data[comb],
+        makeHeatmap(data[comb],
                 title,
                 metadata['probs'],
                 metadata['Ns'])
 
 
-def heatmap(data, xaxis_labels, yaxis_labels, do_knn, comb, iterations):
+def makeHeatmap(data, x_axis_labels, yaxis_labels, do_knn, comb, iterations):
     df = ps.DataFrame(data)
 
-    xaxis_labels = [x if x is not None else "WC" for x in xaxis_labels]
+    x_axis_labels = [x if x is not None else "WC" for x in x_axis_labels]
 
     plt.figure(figsize=(4, 3))
     ax = sns.heatmap(df,
-                     xticklabels=xaxis_labels,
+                     xticklabels=x_axis_labels,
                      yticklabels=yaxis_labels,
                      vmin=0, vmax=1,
                      cmap="RdYlBu",
@@ -158,20 +158,7 @@ def heatmap(data, xaxis_labels, yaxis_labels, do_knn, comb, iterations):
 
     plt.tight_layout()
 
-    title = "RFF: " if do_knn == False else "KNN: "
-    combs = "_".join(comb)
-    title += "%s, spread reps: %d" % (str(combs), iterations)
-    plt.title("\n".join(wrap(title, 30)))
-
-    if savePlot:
-        name = "./plots/heatmap/%s" % "RFF" if not do_knn else "KNN"
-        name += "_%s_%s_%s" % (combs, "_".join(map(str, yaxis_labels)), "_".join(map(str, xaxis_labels)))
-        plt.savefig(name + ".png", bbox_inches='tight')
-        with open(name + '.txt', 'w') as outfile:
-            outfile.write(title + ":\n")
-            outfile.write(df.to_string())
-
-    plt.show()
+    return plt
 
 
 # TODO

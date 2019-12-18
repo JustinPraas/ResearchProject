@@ -47,13 +47,12 @@ def buildDataSetPar(graphs, centralities_dict, spread_param, iterations):
     X, y = [], []
 
     startTotal = time.time()
-    print("Building data set...", end=" ")
 
     processors = cpu_count()
     bs = batches(graphs, floor(int(len(graphs)/processors)))
     print("Building dataset from", len(bs),
           "batches of", len(bs[0]), "graphs")
-    results = Parallel(n_jobs=-1, verbose=1)(delayed(buildDataSetWorker)
+    results = Parallel(n_jobs=-1, verbose=0)(delayed(buildDataSetWorker)
                         (batch, centralities_dict, spread_param, iterations) for batch in bs)
 
     for _X, _y in results:
