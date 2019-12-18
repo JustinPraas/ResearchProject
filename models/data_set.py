@@ -5,7 +5,6 @@ import numpy as np
 from joblib import Parallel, delayed
 from multiprocessing import cpu_count
 
-import main
 from models.information_diffusion import independentCascade, weightedCascade, independentCascadePar
 from models.util import secondsToMinSec, batches
 
