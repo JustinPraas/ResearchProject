@@ -8,6 +8,7 @@ from multiprocessing import cpu_count
 from models.information_diffusion import independentCascade, weightedCascade, independentCascadePar
 from models.util import secondsToMinSec, batches
 
+concurrent = True
 
 def buildDataSet(graphs, centralities_dict, spread_param, iterations):
     X, y = [], []
@@ -25,7 +26,7 @@ def buildDataSet(graphs, centralities_dict, spread_param, iterations):
             X.append(temp_centralities)
 
             if spread_param is not None:
-                if main.concurrent and iterations >= 1500 and len(graphs[0].nodes) > 50:
+                if concurrent and iterations >= 1500 and len(graphs[0].nodes) > 50:
                     spread = independentCascadePar(graph, seed, spread_param, iterations)
                 else:
                     spread = independentCascade(graph, seed, spread_param, iterations)
@@ -80,7 +81,7 @@ def buildDataSetWorker(graphs, centrality_dicts, spread_param, iterations):
             X.append(temp_centralities)
 
             if spread_param is not None:
-                if main.concurrent and iterations >= 1500 and len(graphs[0].nodes) >= 200:
+                if concurrent and iterations >= 1500 and len(graphs[0].nodes) >= 200:
                     spread = independentCascadePar(graph, seed, spread_param, iterations)
                 else:
                     spread = independentCascade(graph, seed, spread_param, iterations)

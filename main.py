@@ -18,8 +18,6 @@ wtf = False
 
 doML = True
 
-concurrent = True
-
 centralities = ["degree", "betweenness", "closeness", "pagerank", "eigenvector", "katz"]
 single_combs = [("degree"), ("betweenness"), ("closeness"), ("pagerank"), ("eigenvector"), ("katz")]
 
