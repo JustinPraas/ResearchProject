@@ -1,3 +1,0 @@
-#!/usr/bin/env python3
-from main import centralities, generateHeatmaps, single_combs
-generateHeatmaps(centralities, single_combs, [0.01, 0.05, 0.1, 0.15], 1400, [6, 7, 8, 9])

@@ -4,10 +4,11 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 128
-#SBATCH --mail-type=END,FAIL       # email status changes
-#SBATCH --mail-user -u
+#SBATCH --mem=48G
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=s1782215
 
 module load anaconda3
 
-echo | ./large_hm_single_it500_RFF.sh
+echo | ./generate_small_datasets.sh
 
