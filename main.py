@@ -6,12 +6,11 @@ from sklearn.metrics import r2_score
 
 from models.centralities import getCentralityValuesDict
 from models.cross_validation import rf_gridCV, knn_gridCV
+from models.data_set import buildDataSetPar
 from models.graph_generator import generateLargeGraphs, generateSmallGraphs, generateEgoFB
 
 import numpy as np
 import pandas as ps
-
-import models.data_set
 
 from models.data_analysis import makeHeatmap, makeScatterPlot, makeLearningCurve
 
@@ -36,7 +35,7 @@ def saveDatasetWith(graphs, centrality_dicts, spread_prob, iterations, N, M=None
         np.loadtxt("data/" + name + ".csv", delimiter=",")
     except OSError:
         # Build data set
-        X, y = models.data_set.buildDataSetPar(graphs, centrality_dicts, spread_prob, iterations)
+        X, y = buildDataSetPar(graphs, centrality_dicts, spread_prob, iterations)
 
         # Zip variables with label
         zipped = [np.append(a, b) for (a, b) in np.array(list(zip(X.tolist(), y)))]
