@@ -91,3 +91,17 @@ def buildDataSetWorker(graphs, centrality_dicts, spread_param, iterations):
             y.append(spread)
 
     return (X, y)
+
+def buildCentralityDataSet(graphs, centrality_dicts):
+    X = []
+
+    for graph in graphs:
+        for seed in graph.nodes:
+            temp_centralities = []
+
+            for centr_key in centrality_dicts:
+                temp_centralities.append(centrality_dicts[centr_key][graph][seed])
+
+            X.append(temp_centralities)
+
+    return X

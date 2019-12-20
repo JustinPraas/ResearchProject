@@ -1,10 +1,10 @@
+import math
 from textwrap import wrap
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as ps
 import numpy as np
-import copy as cp
 import scipy.stats
 
 from sklearn.ensemble import RandomForestRegressor
@@ -43,7 +43,7 @@ def makeLearningCurve(data_frame, features, cv, steps):
 
     plt.figure(figsize=(4, 3))
     plt.ylim(0.5, 1)
-    plt.plot(train_sizes, train_mean, '--', color="#f67f4b",  label="Training score")
+    plt.plot(train_sizes, train_mean, '--', color="#f67f4b", label="Training score")
     plt.plot(train_sizes, test_mean, color="#36459c", label="Cross-validation score")
 
     plt.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, color="#feefa6")
@@ -58,85 +58,103 @@ def makeScatterPlot(data_frame, features):
     if len(features) > 2:
         raise Exception("Scatter can't have more than two features")
 
-    f, ax = plt.subplots(figsize=(4, 3))
+    f, ax = plt.subplots(figsize=(3, 2))
     sns.despine(f, left=True, bottom=True)
     palette = "RdYlBu"
 
-    cb = plt.cm.ScalarMappable(cmap=palette)
     sns.scatterplot(x=features[0], hue=features[1], y="spread", data=data_frame, ax=ax, marker="_", palette=palette)
 
     ax.get_legend().remove()
+
+    cb = plt.cm.ScalarMappable(cmap=palette)
     ax.figure.colorbar(cb).set_label(features[1])
 
     return plt
 
 
-def scatterPlotXDegreeSpread(result_dict):
-    X, y = cp.copy(result_dict['X']), result_dict['y']
-    do_knn, k = result_dict['do_knn'], result_dict['k']
-    N, features, spread_prob, iterations = \
-        result_dict['N'], result_dict['features'], result_dict['spread_prob'], result_dict['iterations']
-
-    f, ax = plt.subplots(figsize=(4, 3))
-    sns.despine(f, left=True, bottom=True)
-
+def makeScatterPlots(data_frame, features, hue):
     palette = "RdYlBu"
+    fig, ax = plt.subplots(math.ceil(len(features) / 2), 2)
 
-    data = prepareData(X, features, y)
+    for f in features:
+        f_index = features.index(f)
+        x_ax_index = f_index % 2
+        y_ax_index = math.floor(f_index / 2)
 
+        corr_ax = ax[y_ax_index][x_ax_index]
+        sns.scatterplot(x=f, hue=hue, y="spread", data=data_frame, ax=corr_ax, marker="_", palette=palette)
+        if x_ax_index == 1:
+            corr_ax.set_ylabel('')
+        corr_ax.get_legend().remove()
+
+    plt.tight_layout()
+
+    return plt
+
+
+def createColorbarHor(hue="degree"):
+    palette = "RdYlBu"
+    fig, ax = plt.subplots()
     cb = plt.cm.ScalarMappable(cmap=palette)
-    sns.scatterplot(x=features[0], y="spread", hue="degree", data=data, ax=ax, marker="_", palette=palette)
+    plt.gca().set_visible(False)
+    fig.colorbar(cb, ax=ax, orientation="horizontal", fraction=.1).set_label(hue)
 
-    ax.get_legend().remove()
-    ax.figure.colorbar(cb).set_label("Degree")
-
-    saveScatterOrLC(N, data, iterations, spread_prob, False, do_knn)
-
+    plt.tight_layout()
+    plt.savefig("plots/colorbar_" + hue + ".png")
     plt.show()
 
 
-def saveScatterOrLC(N, data, iterations, spread_prob, LC, do_knn):
-    title = "RFF: " if not do_knn else "KNN: "
+def makeHeatmaps(heatmap_data_sets):
+    y_size = math.ceil(len(heatmap_data_sets) / 2)
+    x_size = 2
+    font_size = 10
+    fontdict = {'fontsize': font_size}
 
-    if spread_prob:
-        title += "IC, p = %.2f" % spread_prob
-    else:
-        title += "WC"
+    fig = plt.figure(figsize=(x_size * 2, y_size * 2))
 
-    title += ", N = %d" % (N)
-    title += ", iter: %d" % iterations
-    plt.title(title)
-    if savePlot:
-        name = "./plots/scatter/%s" % ("scatter" if not LC else "LC")
-        name += "_N%d_p%s_it%d" % (
-        N, str(int(spread_prob * 100)) if spread_prob else "WC", iterations)
-        plt.savefig(name + ".png", bbox_inches='tight')
-        with open(name + '.txt', 'w') as outfile:
-            outfile.write(title + ":\n")
-            if not LC:
-                outfile.write(data.to_string())
-            else:
-                outfile.write("Train sizes: " + str(data['train_sizes']))
-                outfile.write("Train scores: " + str(data['train_scores']))
-                outfile.write("Test scores: " + str(data['test_scores']))
-                outfile.write("Train mean: " + str(data['train_mean']))
-                outfile.write("Train std: " + str(data['train_std']))
-                outfile.write("Test mean: " + str(data['test_mean']))
-                outfile.write("Test std: " + str(data['test_std']))
+    for i in range(0, len(heatmap_data_sets)):
+        data_set = heatmap_data_sets[i]
+        x_ax_index = i % 2
+        y_ax_index = math.floor(i / 2)
+
+        print(x_ax_index, y_ax_index)
+
+        corr_ax = fig.add_subplot(y_size, x_size, i + 1)
+        corr_ax.set_title("\n".join(wrap((", ").join(data_set.features), 15)), fontdict=fontdict)
+
+        hm = sns.heatmap(data_set,
+                         ax=corr_ax,
+                         xticklabels=data_set.probs,
+                         yticklabels=data_set.Ns,
+                         vmin=0.75, vmax=1,
+                         cmap="YlGnBu",
+                         square=True,
+                         cbar=False)
+
+        hm.set_xticklabels(hm.get_xticklabels(), rotation=45)
+        hm.set_yticklabels(hm.get_yticklabels(), rotation='horizontal')
+        corr_ax.tick_params(axis='both', pad=-1, labelsize=font_size)
+
+        show_xticklabels = x_ax_index == 0
+        show_yticklables = y_ax_index == math.ceil(len(heatmap_data_sets) / 2) - 1
+
+        if show_xticklabels:
+            corr_ax.set_ylabel("N", rotation=0, labelpad=10, fontdict=fontdict, verticalalignment='center')
+
+        if show_yticklables:
+            corr_ax.set_xlabel("p", labelpad=6, fontdict=fontdict)
+
+        # Hack:
+        bottom, top = corr_ax.get_ylim()
+        corr_ax.set_ylim(bottom + 0.5, top - 0.5)
+
+    plt.subplots_adjust(wspace = -0.70)
+    plt.tight_layout()
+
+    return plt
 
 
-def heatmaps(data, metadata):
-    for comb in data.keys():
-        title = "RFR: " if metadata['do_knn'] == False else "KNN: "
-        title += "_".join([x for x in comb])
-
-        makeHeatmap(data[comb],
-                title,
-                metadata['probs'],
-                metadata['Ns'])
-
-
-def makeHeatmap(data, x_axis_labels, yaxis_labels, do_knn, comb, iterations):
+def makeHeatmap(data, x_axis_labels, yaxis_labels):
     df = ps.DataFrame(data)
 
     x_axis_labels = [x if x is not None else "WC" for x in x_axis_labels]
@@ -145,8 +163,8 @@ def makeHeatmap(data, x_axis_labels, yaxis_labels, do_knn, comb, iterations):
     ax = sns.heatmap(df,
                      xticklabels=x_axis_labels,
                      yticklabels=yaxis_labels,
-                     vmin=0, vmax=1,
-                     cmap="RdYlBu",
+                     vmin=0.75, vmax=1,
+                     cmap="YlGnBu",
                      square=True,
                      cbar_kws={'label': 'R²'})
 
@@ -158,7 +176,10 @@ def makeHeatmap(data, x_axis_labels, yaxis_labels, do_knn, comb, iterations):
 
     plt.tight_layout()
 
-    return plt
+    return plt, ax
+
+
+# def makeHeatmaps(data, )
 
 
 # TODO
@@ -171,8 +192,5 @@ def mean_confidence_interval(data, confidence=0.95):
     m, se = np.mean(a), scipy.stats.sem(a)
 
     #
-    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
+    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n - 1)
     return m - h, m, m + h
-
-
-

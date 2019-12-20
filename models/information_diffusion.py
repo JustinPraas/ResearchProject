@@ -29,6 +29,12 @@ def independentCascadePar(graph, seedNode, probability, iterations):
     return average
 
 
+def weightedCascadePar(graph, seedNode, iterations):
+    results = Parallel(n_jobs=-1, verbose=0)(delayed(weightedCascadeWorker)(graph, seedNode) for i in range(0, iterations))
+    average = sum(results) / len(results)
+    return average
+
+
 def independentCascadeWorker(graph, probability, seedNode):
     active = []
     target = [seedNode]
@@ -42,22 +48,15 @@ def independentCascadeWorker(graph, probability, seedNode):
     return len(active)
 
 
-def weightedCascade(graph, seedNode, iterations):
-    result = []
-
-    for i in range(0, iterations):
-        active = []
-        target = [seedNode]
-
-        while len(target) > 0:
-            u = target.pop()
-            active.append(u)
-            for v in graph.neighbors(u):
-                v_d = graph.degree[v]
-                if v not in active and v not in target:
-                    if random() <= 1 / v_d:
-                        target.append(v)
-        result.append(len(active))
-
-    average = sum(result) / len(result)
-    return average
+def weightedCascadeWorker(graph, seedNode):
+    active = []
+    target = [seedNode]
+    while len(target) > 0:
+        u = target.pop()
+        active.append(u)
+        for v in graph.neighbors(u):
+            v_d = graph.degree[v]
+            if v not in active and v not in target:
+                if random() <= 1 / v_d:
+                    target.append(v)
+    return len(active)

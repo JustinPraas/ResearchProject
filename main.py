@@ -6,13 +6,15 @@ from sklearn.metrics import r2_score
 
 from models.centralities import getCentralityValuesDict
 from models.cross_validation import rf_gridCV, knn_gridCV
-from models.data_set import buildDataSetPar
+from models.data_set import buildDataSetPar, buildCentralityDataSet
 from models.graph_generator import generateLargeGraphs, generateSmallGraphs, generateEgoFB
 
 import numpy as np
 import pandas as ps
 
-from models.data_analysis import makeHeatmap, makeScatterPlot, makeLearningCurve
+from models.data_analysis import makeHeatmap, makeScatterPlot, makeLearningCurve, makeScatterPlots, createColorbarHor, \
+    makeHeatmaps
+from models.information_diffusion import independentCascadePar, weightedCascade, weightedCascadePar
 
 wtf = False
 
@@ -21,6 +23,8 @@ doML = True
 centralities = ["degree", "betweenness", "closeness", "pagerank", "eigenvector", "katz"]
 single_combs = [("degree"), ("betweenness"), ("closeness"), ("pagerank"), ("eigenvector"), ("katz")]
 
+datasets_path = "data/datasets/"
+heatmap_data_path = "data/heatmap/"
 
 def saveDatasetWith(graphs, centrality_dicts, spread_prob, iterations, N, M=None, real=False):
     # Save the data to the file
@@ -29,8 +33,9 @@ def saveDatasetWith(graphs, centrality_dicts, spread_prob, iterations, N, M=None
     # Check if data set already exists
     try:
         # If so, return
+        x = np.loadtxt(datasets_path + name + ".csv", delimiter=",")
         print("Dataset for %s already exists; Will not generate new one." % name)
-        np.loadtxt("data/" + name + ".csv", delimiter=",")
+        return x
     except OSError:
         # Build data set
         X, y = buildDataSetPar(graphs, centrality_dicts, spread_prob, iterations)
@@ -38,7 +43,7 @@ def saveDatasetWith(graphs, centrality_dicts, spread_prob, iterations, N, M=None
         # Zip variables with label
         zipped = [np.append(a, b) for (a, b) in np.array(list(zip(X.tolist(), y)))]
 
-        np.savetxt("data/" + name + ".csv", zipped, delimiter=",")
+        np.savetxt(datasets_path + name + ".csv", zipped, delimiter=",")
 
         return zipped
 
@@ -50,8 +55,9 @@ def saveDataset(N, spread_prob, iterations, M=None, real=False):
     # Check if data set already exists
     try:
         # If so, return
+        x = np.loadtxt(datasets_path + name + ".csv", delimiter=",")
         print("Dataset for %s already exists; Will not generate new one." % name)
-        return np.loadtxt("data/" + name + ".csv", delimiter=",")
+        return x
     except OSError:
         # Generate graphs and centrality dictionaries
         if M is not None:
@@ -74,7 +80,7 @@ def loadDataset(N, spread_prob, iterations, M=None, real=False):
 
     try:
         # Try to load it from existing file
-        zipped = np.loadtxt("data/" + name + ".csv", delimiter=',')
+        zipped = np.loadtxt(datasets_path + name + ".csv", delimiter=',')
     except OSError:
         # Otherwise generate it and save it
         zipped = saveDataset(N, spread_prob, iterations, M, real)
@@ -91,17 +97,27 @@ def loadDataset(N, spread_prob, iterations, M=None, real=False):
     return df
 
 
-def scatterPlot(data_frame, features, save=False):
-    # Generate plot
-    plt = makeScatterPlot(data_frame, features)
+def scatterPlot(data_frame, features, hue=None, save=False):
+
+    if hue is None:
+        # Generate single plot with feature[1] as 'hue'
+        plt = makeScatterPlot(data_frame, features)
+    else:
+        # Generate several plots in one with 'hue' as hue
+        plt = makeScatterPlots(data_frame, features, hue)
 
     # Create title
-    setPlotTitle(data_frame, plt)
+    st = setPlotTitle(data_frame, plt)
+
+    # Shift subplots down
+    st.set_y(0.99)
+    plt.gcf().subplots_adjust(top=0.93)
 
     # Save if necessary
     if save:
         name = \
             createFileName(data_frame.M, data_frame.N, data_frame.iterations, data_frame.real, data_frame.prob)
+        name.replace("0.", "")
         plt.savefig("plots/scatter/" + name + ".png", bbox_inches='tight')
 
     # Show plot
@@ -128,27 +144,51 @@ def learningCurve(data_frame, features, steps, save=False):
     plt.show()
 
 
+def saveHeatmapData(data_frame, features, Ns, probs, iterations, knn=False):
+    name = createHeatmapFileName(features, Ns, probs, iterations, knn=knn)
+    data_frame.to_csv("data/heatmap/" + name + ".csv", ",")
+
+def loadHeatmapData(features, Ns, probs, iterations, knn=False):
+    name = createHeatmapFileName(features, Ns, probs, iterations, knn=knn)
+    df = ps.read_csv(heatmap_data_path + name + ".csv", ",", index_col=0)
+    df.Ns = Ns
+    df.probs = probs
+    df.features = features
+    df.iterations = iterations
+    df.knn = knn
+
+    return df
+
+
 def heatmap(features, Ns, probs, iterations, Ms=None, knn=False, save=False):
-    data = []
 
-    task_nr = 1
-    no_tasks = len(Ns) * len(probs)
-    for n in Ns:
-        temp_data = []
-        for p in probs:
-            print("Task %d/%d (N=%d, p=%s, comb=%s)" % (task_nr, no_tasks, n, str(p), features))
+    try:
+        # Attempt to load an existing data file for these parameters
+        df = loadHeatmapData(features, Ns, probs, iterations, knn=knn)
+    except OSError:
+        print("Creating new heatmap data for given parameters")
+        data = []
 
-            if Ms is not None:
-                data_frame = loadDataset(n, p, iterations, Ms[Ns.index(n)])
-            else:
-                data_frame = loadDataset(n, p, iterations)
+        task_nr = 1
+        no_tasks = len(Ns) * len(probs)
+        for n in Ns:
+            temp_data = []
+            for p in probs:
+                print("Task %d/%d (N=%d, p=%s, comb=%s)" % (task_nr, no_tasks, n, str(p), features))
 
-            temp_data.append(score(data_frame, features, knn))
+                if Ms is not None:
+                    data_frame = loadDataset(n, p, iterations, Ms[Ns.index(n)])
+                else:
+                    data_frame = loadDataset(n, p, iterations)
 
-            task_nr += 1
-        data.append(temp_data)
+                temp_data.append(score(data_frame, features, knn))
 
-    plt = makeHeatmap(data, probs, Ns, knn, features, iterations)
+                task_nr += 1
+            data.append(temp_data)
+
+        df = ps.DataFrame(data, columns=probs, index=Ns)
+
+    plt, _ = makeHeatmap(df, probs, Ns)
 
     # Create title
     setHeatmapTitle(features, iterations, knn, plt)
@@ -157,8 +197,26 @@ def heatmap(features, Ns, probs, iterations, Ms=None, knn=False, save=False):
     if save:
         name = createHeatmapFileName(features, Ns, probs, iterations, knn=knn)
         plt.savefig("plots/heatmap/" + name + ".png", bbox_inches='tight')
+        saveHeatmapData(df, features, Ns, probs, iterations, knn=knn)
 
     # Show plot
+    plt.show()
+
+    return df
+
+
+def heatmaps(feature_combs, Ns, probs, iterations, knn=False, save=True):
+    data_sets = []
+    for comb in feature_combs:
+        data_sets.append(loadHeatmapData(comb, Ns, probs, iterations, knn=knn))
+
+    plt = makeHeatmaps(data_sets)
+
+    # Save if necessary
+    if save:
+        name = createHeatmapFileName([], Ns, probs, iterations, knn=knn)
+        plt.savefig("plots/heatmap/" + name + "_combination.png", bbox_inches='tight')
+
     plt.show()
 
 
@@ -209,12 +267,60 @@ def generateDatasets(Ns, probs, iterations, Ms=None, real=False):
 
 
 '''
+FOR REAL, LARGE GRAPHS (N > 1000)
+'''
+def loadLargeDataset(hasSpread):
+    try:
+        X = np.loadtxt(datasets_path + "real_fb_ego.csv", delimiter=",")
+
+        if hasSpread:
+            df = ps.DataFrame(X, columns=np.append(centralities, "spread"))
+        else:
+            df = ps.DataFrame(X)
+
+        # Add meta data
+        df.hasSpread = hasSpread
+
+        return df
+    except OSError:
+        print("Data set does not exist")
+
+
+def saveLargeDatasetCentralities():
+    graphs = [generateEgoFB()]
+    X = buildCentralityDataSet(graphs, centralities)
+    np.savetxt(datasets_path + "real_fb_ego.csv", X, delimiter=",")
+
+
+def buildSpreadDatasetFromCentralityDataSet(graphs, prob, iterations):
+    df = loadLargeDataset(False)
+
+    y = []
+
+    for g in graphs:
+        for seed in g.nodes():
+            if prob is not None:
+                spread = independentCascadePar(g, seed, prob, iterations)
+            else:
+                spread = weightedCascadePar(g, seed, iterations)
+
+            y.append(spread)
+
+    df['spread'] = y
+
+    prob_string = "WC" if prob is None else "%.3f" % prob
+    df.to_csv(datasets_path + "real_fb_ego_P" + prob_string + ".csv")
+
+    return df
+
+
+'''
 UTIL FUNCTIONS
 '''
 def setPlotTitle(data_frame, plt):
     prob_title_part = "WC" if data_frame.prob is None else "IC = %.3f" % data_frame.prob
-    title = "N = %d, %s,\nspread reps = %d" % (data_frame.N, prob_title_part, data_frame.iterations)
-    plt.title("\n".join(wrap(title, 30)))
+    title = "N = %d, %s, spread reps = %d" % (data_frame.N, prob_title_part, data_frame.iterations)
+    return plt.gcf().suptitle(title, fontsize=10)
 
 
 def setHeatmapTitle(features, iterations, knn, plt):
