@@ -3,6 +3,8 @@ import time
 from networkx import barabasi_albert_graph, from_graph6_bytes, read_edgelist
 from models.util import secondsToMinSec
 
+import networkit as nk
+
 
 def generateLargeGraphs(M, N):
     startTotal = time.time()
@@ -42,5 +44,10 @@ def generateSmallGraphs(N):
 
     return graphs
 
+
 def generateEgoFB():
+    return nk.readGraph('./graphs/facebook_egos', nk.Format.EdgeList, firstNode=0, separator=" ", continuous=True)
+
+
+def generateEgoFB_networkx():
     return read_edgelist('./graphs/facebook_egos')

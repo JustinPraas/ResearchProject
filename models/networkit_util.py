@@ -2,29 +2,23 @@ from collections import OrderedDict
 
 import networkit.centrality as nk
 
-def getCentralityValuesDictPar(graphs, centralities):
+def getCentralityValuesDictPar(graph, centralities):
     print("Building centrality dictionaries... (parallel)", end=" ")
     result = OrderedDict()
 
     for c in centralities:
         result[c] = OrderedDict()
 
-    for g in graphs:
-        result["betweenness"][g] = nk.ApproxBetweenness(g)
+    result["betweenness"][graph] = nk.ApproxBetweenness(graph).run()
 
-    for g in graphs:
-        result["closeness"][g] = nk.ApproxCloseness(g, len(g))
+    result["closeness"][graph] = nk.ApproxCloseness(graph, len(graph.nodes())).run()
 
-    if "katz" in centralities:
-        result["katz"][g] = nk.KatzCentrality(g)
+    result["katz"][graph] = nk.KatzCentrality(graph).run()
 
-    for g in graphs:
-        result["eigenvector"][g] = nk.EigenvectorCentrality(g)
+    result["eigenvector"][graph] = nk.EigenvectorCentrality(graph).run()
 
-    for g in graphs:
-        result["pagerank"][g] = nk.PageRank(g, 0.85) # alpha damping factor is 0.85 by default
+    result["pagerank"][graph] = nk.PageRank(graph, 0.85).run() # alpha damping factor is 0.85 by default
 
-    for g in graphs:
-        result["degree"][g] = nk.DegreeCentrality(g) # is normalized
+    result["degree"][graph] = nk.DegreeCentrality(graph, normalized=True).run() # is normalized
 
     return result

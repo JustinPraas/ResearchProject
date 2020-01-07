@@ -10,14 +10,8 @@ import scipy.stats
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import learning_curve
 
-from models.util import prepareData
-
-savePlot = True
-
 sns.set()
 
-
-# IMPORTANT! INSPIRATION FROM: https://chrisalbon.com/machine_learning/model_evaluation/plot_the_learning_curve/
 def makeLearningCurve(data_frame, features, cv, steps):
     X = data_frame[features]
     y = data_frame["spread"]
@@ -177,20 +171,3 @@ def makeHeatmap(data, x_axis_labels, yaxis_labels):
     plt.tight_layout()
 
     return plt, ax
-
-
-# def makeHeatmaps(data, )
-
-
-# TODO
-# https://stackoverflow.com/a/15034143
-def mean_confidence_interval(data, confidence=0.95):
-    a = 1.0 * np.array(data)
-    n = len(a)
-
-    # Calculate the mean and the standard error of the mean
-    m, se = np.mean(a), scipy.stats.sem(a)
-
-    #
-    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n - 1)
-    return m - h, m, m + h

@@ -5,7 +5,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from multiprocessing import cpu_count
 
-from models.information_diffusion import independentCascade, weightedCascade, independentCascadePar
+from models.information_diffusion import independentCascade, weightedCascade, weightedCascadePar, independentCascadePar
 from models.util import secondsToMinSec, batches
 
 concurrent = True
@@ -92,16 +92,15 @@ def buildDataSetWorker(graphs, centrality_dicts, spread_param, iterations):
 
     return (X, y)
 
-def buildCentralityDataSet(graphs, centrality_dicts):
+def buildCentralityDataSet(graph, centrality_dicts):
     X = []
 
-    for graph in graphs:
-        for seed in graph.nodes:
-            temp_centralities = []
+    for seed in graph.nodes():
+        temp_centralities = []
 
-            for centr_key in centrality_dicts:
-                temp_centralities.append(centrality_dicts[centr_key][graph][seed])
+        for centr_key in centrality_dicts:
+            temp_centralities.append(centrality_dicts[centr_key][graph].score(seed))
 
-            X.append(temp_centralities)
+        X.append(temp_centralities)
 
     return X

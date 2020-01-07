@@ -14,19 +14,28 @@ import pandas as ps
 
 from models.data_analysis import makeHeatmap, makeScatterPlot, makeLearningCurve, makeScatterPlots, createColorbarHor, \
     makeHeatmaps
-from models.information_diffusion import independentCascadePar, weightedCascade, weightedCascadePar
+from models.information_diffusion import independentCascadePar, weightedCascadePar
+from models.networkit_util import getCentralityValuesDictPar
 
 wtf = False
 
 doML = True
 
+# Centralities used in this research
 centralities = ["degree", "betweenness", "closeness", "pagerank", "eigenvector", "katz"]
-single_combs = [("degree"), ("betweenness"), ("closeness"), ("pagerank"), ("eigenvector"), ("katz")]
 
+# Relative folder paths
 datasets_path = "data/datasets/"
 heatmap_data_path = "data/heatmap/"
 
 def saveDatasetWith(graphs, centrality_dicts, spread_prob, iterations, N, M=None, real=False):
+    """
+    Saves data sets for each provided graph. For each provided graph, the centrality dictionary
+    for that graph is in the centrality_dicts. For each spread probability, a different data set is created
+    This also holds for the different iterations. If small-to-medium size graphs are provided,
+    then M must be provided so that a data set for all M graphs of size N are constructed.
+    """
+
     # Save the data to the file
     name = createFileName(M, N, iterations, real, spread_prob)
 
@@ -49,6 +58,10 @@ def saveDatasetWith(graphs, centrality_dicts, spread_prob, iterations, N, M=None
 
 
 def saveDataset(N, spread_prob, iterations, M=None, real=False):
+    """
+    Saves a data set for the provided parameters.
+    """
+
     # Save the data to the file
     name = createFileName(M, N, iterations, real, spread_prob)
 
@@ -64,8 +77,8 @@ def saveDataset(N, spread_prob, iterations, M=None, real=False):
             if N <= 10:
                 raise Exception("Please enter a graph size > 10")
             graphs = generateLargeGraphs(M, N)
-        elif real:
-            graphs = [generateEgoFB()]
+        # elif real:
+        #     graphs = [generateEgoFB()]
         else:
             graphs = generateSmallGraphs(N)
 
@@ -75,6 +88,10 @@ def saveDataset(N, spread_prob, iterations, M=None, real=False):
 
 
 def loadDataset(N, spread_prob, iterations, M=None, real=False):
+    """
+    Loads a dataset, based on the provided parameters. If it does not exists, it will
+    create a dataset using 'saveDataSet'
+    """
     # Load the data to the file
     name = createFileName(M, N, iterations, real, spread_prob)
 
@@ -93,12 +110,17 @@ def loadDataset(N, spread_prob, iterations, M=None, real=False):
     df.M = M
     df.real = real
     df.iterations = iterations
+    df.features = None
 
     return df
 
 
 def scatterPlot(data_frame, features, hue=None, save=False):
-
+    """
+    Creates a scatterplot given the provided data set. If 'hue' is not provided,
+    the x-axis will be features[0] and the hue will become features[1]. No checking
+    is done for valid input!
+    """
     if hue is None:
         # Generate single plot with feature[1] as 'hue'
         plt = makeScatterPlot(data_frame, features)
@@ -115,29 +137,41 @@ def scatterPlot(data_frame, features, hue=None, save=False):
 
     # Save if necessary
     if save:
+        features_string = "_".join(features)
         name = \
             createFileName(data_frame.M, data_frame.N, data_frame.iterations, data_frame.real, data_frame.prob)
         name.replace("0.", "")
-        plt.savefig("plots/scatter/" + name + ".png", bbox_inches='tight')
+        plt.savefig("plots/scatter/" + name + "_" + features_string + ".png", bbox_inches='tight')
 
     # Show plot
     plt.show()
 
 
 def learningCurve(data_frame, features, steps, save=False):
+    """
+    Plots a learning curve given the provided data set. Plots the
+    cross validation score and the training score against the training set size.
+    Steps indicate how many different points you want in the plot. Setting save to True
+    will save the plot to the designated dictionary.
+    """
     if data_frame.N < 10:
         raise Exception("It is disadviced to plot learning curves for all non-isomorphic graphs")
 
     # Generate plot and corresponding data
     plt, data = makeLearningCurve(data_frame, features, 10, steps)
 
+    data_frame.features = features
+
     # Create title
     setPlotTitle(data_frame, plt)
 
     # Save if necessary
     if save:
+        feature_string = "_".join(features)
         name = \
             createFileName(data_frame.M, data_frame.N, data_frame.iterations, data_frame.real, data_frame.prob)
+        name += "_" + feature_string
+        name = name.replace(".", "")
         plt.savefig("plots/lc/" + name + ".png", bbox_inches='tight')
 
     # Show plot
@@ -145,10 +179,17 @@ def learningCurve(data_frame, features, steps, save=False):
 
 
 def saveHeatmapData(data_frame, features, Ns, probs, iterations, knn=False):
+    """
+    Saves heatmap data (from a data_frame) to a CSV file.
+    """
     name = createHeatmapFileName(features, Ns, probs, iterations, knn=knn)
     data_frame.to_csv("data/heatmap/" + name + ".csv", ",")
 
+
 def loadHeatmapData(features, Ns, probs, iterations, knn=False):
+    """
+    Loads heatmap data from a CSV file to a data_frame, given the specified parameters.
+    """
     name = createHeatmapFileName(features, Ns, probs, iterations, knn=knn)
     df = ps.read_csv(heatmap_data_path + name + ".csv", ",", index_col=0)
     df.Ns = Ns
@@ -161,7 +202,10 @@ def loadHeatmapData(features, Ns, probs, iterations, knn=False):
 
 
 def heatmap(features, Ns, probs, iterations, Ms=None, knn=False, save=False):
-
+    """
+    Creates a heatmap given the specified parameters. If heatmap data for these
+    parameters already exist, it will load those in instead of creating new data.
+    """
     try:
         # Attempt to load an existing data file for these parameters
         df = loadHeatmapData(features, Ns, probs, iterations, knn=knn)
@@ -205,22 +249,36 @@ def heatmap(features, Ns, probs, iterations, Ms=None, knn=False, save=False):
     return df
 
 
-def heatmaps(feature_combs, Ns, probs, iterations, knn=False, save=True):
+def heatmaps(feature_combs, Ns, probs, iterations, knn=False, save=True, small_pad=True):
+    """
+    Creates a 2-by-X grid of existing heatmaps, generated from existing heatmap data, given the
+    provided parameters. Depending on the parameters, the padding between the heatmaps might be off.
+    This can be partially fixed by using the small_pad parameter or simply altering the 'makeHeatmaps'
+    function.
+    """
     data_sets = []
     for comb in feature_combs:
         data_sets.append(loadHeatmapData(comb, Ns, probs, iterations, knn=knn))
 
-    plt = makeHeatmaps(data_sets)
+    plt = makeHeatmaps(data_sets, small_pad)
 
     # Save if necessary
     if save:
-        name = createHeatmapFileName([], Ns, probs, iterations, knn=knn)
+        # feature_string = "_".join(["".join(x) for x in feature_combs])
+        feature_string = "2s_all"
+        name = createHeatmapFileName([], Ns, probs, iterations, knn=knn) + "_" + feature_string
+        name = name.replace(".", "")
         plt.savefig("plots/heatmap/" + name + "_combination.png", bbox_inches='tight')
 
     plt.show()
 
 
 def score(data_frame, features, knn=False):
+    """
+    Calculates the R^2 score of the specified data set against the provided features.
+    If knn is True, it will use k-nearest neighbors, otherwise Random Forest Regression is used.
+    The data sets are first scaled for more accurate results (mainly for KNN).
+    """
     X = data_frame[features]
     y = data_frame["spread"]
 
@@ -241,7 +299,10 @@ def score(data_frame, features, knn=False):
 
 
 def generateDatasets(Ns, probs, iterations, Ms=None, real=False):
-
+    """
+    Generates a data set for the given parameters. Small, small-to-medium size and real-graph
+    data sets can be provided by setting the required parameters.
+    """
     if real:
         graphs = [generateEgoFB()]
         centrality_dicts = getCentralityValuesDict(graphs, centralities)
@@ -267,49 +328,62 @@ def generateDatasets(Ns, probs, iterations, Ms=None, real=False):
 
 
 '''
-FOR REAL, LARGE GRAPHS (N > 1000)
+FOR REAL GRAPHS
 '''
-def loadLargeDataset(hasSpread):
+def loadRealDataset():
+    """
+    Loads a 'real'-graph data set.
+    """
     try:
-        X = np.loadtxt(datasets_path + "real_fb_ego.csv", delimiter=",")
-
-        if hasSpread:
-            df = ps.DataFrame(X, columns=np.append(centralities, "spread"))
-        else:
-            df = ps.DataFrame(X)
+        df = ps.read_csv(datasets_path + "real_fb_ego_P0.010_IT100.csv", index_col="node", delimiter=",")
 
         # Add meta data
-        df.hasSpread = hasSpread
+        df.hasSpread = True
+        df.features = ["degree", "betweenness", "closeness", "pagerank", "eigenvector", "katz"]
+        df.prob = 0.01
+        df.N = 4036
+        df.M = None
+        df.real = True
+        df.iterations = 100
+
 
         return df
     except OSError:
         print("Data set does not exist")
 
 
-def saveLargeDatasetCentralities():
-    graphs = [generateEgoFB()]
-    X = buildCentralityDataSet(graphs, centralities)
+def saveRealDatasetCentralities():
+    """
+    Saves and returns a data set containing only the centrality values for the real graph.
+    """
+    graph = generateEgoFB()
+    centrality_dicts = getCentralityValuesDictPar(graph, centralities)
+    X = buildCentralityDataSet(graph, centrality_dicts)
     np.savetxt(datasets_path + "real_fb_ego.csv", X, delimiter=",")
 
 
-def buildSpreadDatasetFromCentralityDataSet(graphs, prob, iterations):
-    df = loadLargeDataset(False)
+def buildSpreadDatasetFromCentralityDataSet(graph, prob, iterations):
+    """
+    Builds from the centrality values data set, the full data set including spread, given the spread
+    probability (IC only).
+    """
+    df = loadRealDataset(False)
 
     y = []
 
-    for g in graphs:
-        for seed in g.nodes():
-            if prob is not None:
-                spread = independentCascadePar(g, seed, prob, iterations)
-            else:
-                spread = weightedCascadePar(g, seed, iterations)
+    for seed in graph.nodes():
+        if prob is not None:
+            spread = independentCascadePar(graph, seed, prob, iterations)
+        else:
+            spread = weightedCascadePar(graph, seed, iterations)
 
-            y.append(spread)
+        y.append(spread)
 
     df['spread'] = y
 
     prob_string = "WC" if prob is None else "%.3f" % prob
-    df.to_csv(datasets_path + "real_fb_ego_P" + prob_string + ".csv")
+    it_string = "%d" % iterations
+    df.to_csv(datasets_path + "real_fb_ego_P%s_IT%s.csv" % (prob_string, it_string))
 
     return df
 
@@ -320,6 +394,9 @@ UTIL FUNCTIONS
 def setPlotTitle(data_frame, plt):
     prob_title_part = "WC" if data_frame.prob is None else "IC = %.3f" % data_frame.prob
     title = "N = %d, %s, spread reps = %d" % (data_frame.N, prob_title_part, data_frame.iterations)
+
+    if data_frame.features is not None:
+        title += ", " + "-".join(data_frame.features)
     return plt.gcf().suptitle(title, fontsize=10)
 
 
@@ -335,8 +412,8 @@ def createFileName(M, N, iterations, real, spread_prob):
     prob_string = "%.3f" % spread_prob if spread_prob is not None else "WC"
     M_string = "M%s_" % str(M) if M is not None else ""
     real_string = "ego_FB" if real else ""
-    N_string = real_string if real else N
-    name = "N%d_%sP%s_IT%d" % (N_string, M_string, prob_string, iterations)
+    N_string = real_string if real else str(N)
+    name = "N%s_%sP%s_IT%d" % (N_string, M_string, prob_string, iterations)
     return name
 
 
